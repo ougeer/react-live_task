@@ -2,18 +2,17 @@ import React from 'react';
 import dracula from 'prism-react-renderer/themes/dracula';
 import LiveEdit from './LiveEdit';
 
-
 const someCode = `
 function App() {
       
       function getKeys(data){
-          let longest = data.reduce(function (a, b) { return Object.keys(a).length > Object.keys(b).length ? Object.keys(a) : Object.keys(b); });
+          let longest = data.reduce((a, b) => { return Object.keys(a).length > Object.keys(b).length ? Object.keys(a) : Object.keys(b); });
           return longest;
       }
       
       function getHeader(data){
           var keys = getKeys(data);
-              return keys.map((key, index)=>{
+              return keys.map((key, index)=> {
                   return <th key={key}>{key.toUpperCase()}</th>
           })
       }
@@ -21,7 +20,6 @@ function App() {
       function getRowsData(data){
           var items = data;
           var keys = getKeys(data);
-          console.log(...keys, ...items )
           return items.map((row, index)=>{
               return <tr key={index}><RenderRow key={index} data={row} keys={keys}/></tr>
           })
@@ -63,9 +61,31 @@ class App extends React.Component {
     this.state = {
       label: 'Search:',
       products: [
-        {id: 0, name: 'produkt 1'}, {id: 1, name: 'produkt 2'}
-      ]
+        {id: 0, title: 'produkt 1'}, {id: 1, title: 'produkt 2'}
+      ],
+      rowNo: '',
+      title: '',
+      value: ''
     } 
+  }
+
+  handleChange(e) {
+    switch (e.target.name) {
+      case 'title':
+        if (e.target.value.match(/^[a-zA-Z ]+$/) != null) {
+          this.setState({[e.target.name]: e.target.value});
+        }
+        break;
+
+      default:
+        this.setState({[e.target.name]: e.target.value});
+    }
+  }
+
+  handleSubmit(e) {
+    e.preventDefault();
+    let { rowNo, title, value } = this.state;
+    this.addColumn(rowNo, title, value);
   }
 
 // funkcia meniaca label
@@ -79,34 +99,51 @@ class App extends React.Component {
   }
 
   // funkcia, ktorá pridá stĺpec
-
   addColumn(rowNo, title, value) {
-    const updatedProducts = this.state.products.map(product => {
-      if (product.id === rowNo) {
-        return ({
-          ...product,
-          [title]: value
-        })
-      } else {
-         return product
-        }
-    });
-    console.log(updatedProducts);
-    this.setState({products: updatedProducts});
+    let coercedRowNo = Number(rowNo);
+    
+    if (coercedRowNo >= 0 && coercedRowNo <= this.state.products.length) {  
+      const updatedProducts = this.state.products.map(product => {
+        
+        if (product.id === coercedRowNo) {
+          return ({
+            ...product,
+            [title]: value
+          });
+        } 
+        if (title in product) {
+        return product;
+        } else {
+            return ({
+              ...product,
+              [title]: null
+            });
+          }
+      });
+      
+      this.setState({
+        products: updatedProducts,
+        rowNo: '',
+        title: '',
+        value: ''
+      });
+    }
   }
 
   render() {
     const labels = ['Lorem:', 'Ipsum:', 'Dolor:'];
-    const buttonsSection = {
-      padding: '10px',
-      textAlign: 'center'
-    }
+    const { rowNo, title, value } = this.state;
 
     return (
       <div className='App-live'>
-        <div className='buttons' style={buttonsSection}>
-          <button style={{margin: '10px'}} onClick={() => this.changeLabel(labels)}>Toggle Label</button>
-          <button onClick={() => this.addColumn(1, 'price', 10)}>Add Column</button>
+        <div className='input-section'>
+          <form className='app-form' onSubmit={e => this.handleSubmit(e)}>
+            <input type='number' name='rowNo' value={rowNo} min={0} max={this.state.products.length - 1} onChange={e => this.handleChange(e)} placeholder='Enter row number' required style={{width: '10em'}} />
+            <input type='text' name='title' value={title} onChange={e => this.handleChange(e)} placeholder='Enter column title' required />
+            <input type='text' name='value' value={value} onChange={e => this.handleChange(e)} placeholder='Enter column value' required />
+            <button type='submit'>Add Column</button>
+            <button type='button' onClick={() => this.changeLabel(labels)}>Toggle Label</button>
+          </form>
         </div>
         <LiveEdit code={someCode} scope={this.state} noInline={true} theme={dracula} />
       </div>
